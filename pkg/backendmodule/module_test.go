@@ -25,6 +25,8 @@ func (d *fakeDriver) BaseURL() string { return d.baseURL }
 
 type fakeClient struct {
 	lastActionPayload map[string]any
+	resetResponse     map[string]any
+	actionResponse    map[string]any
 }
 
 func (c *fakeClient) Health(context.Context) error { return nil }
@@ -52,11 +54,17 @@ func (c *fakeClient) CloseSession(context.Context, string) (map[string]any, erro
 }
 
 func (c *fakeClient) Reset(context.Context, string, string) (map[string]any, error) {
+	if c.resetResponse != nil {
+		return cloneMap(c.resetResponse), nil
+	}
 	return map[string]any{"guid": "guid-1", "state": "RUNNING"}, nil
 }
 
 func (c *fakeClient) Action(_ context.Context, _ string, _ string, action string, payload map[string]any) (map[string]any, error) {
 	c.lastActionPayload = cloneMap(payload)
+	if c.actionResponse != nil {
+		return cloneMap(c.actionResponse), nil
+	}
 	return map[string]any{
 		"guid":   "guid-1",
 		"state":  "RUNNING",
@@ -140,6 +148,68 @@ func TestModule_ActionRequiresResetGUID(t *testing.T) {
 	mux.ServeHTTP(rr, req)
 	require.Equal(t, http.StatusBadRequest, rr.Code)
 	require.Contains(t, rr.Body.String(), "call reset first")
+}
+
+func TestModule_NormalizesFramePayloadsAtHTTPBoundary(t *testing.T) {
+	module := newModuleForTests(t)
+	module.client = &fakeClient{
+		resetResponse: map[string]any{
+			"guid":              "guid-raw",
+			"state":             "running",
+			"levels_completed":  "bad",
+			"win_levels":        "bad",
+			"available_actions": "bad",
+			"frame":             "bad",
+		},
+		actionResponse: map[string]any{
+			"guid":             "guid-raw",
+			"state":            "RUNNING",
+			"levels_completed": 2.0,
+			"win_levels":       []any{1, "x", 3.0},
+			"available_actions": []any{
+				"ACTION1", 7,
+			},
+			"frame": []any{
+				[]any{1, "x", 3.0},
+				"bad-row",
+			},
+		},
+	}
+
+	mux := http.NewServeMux()
+	require.NoError(t, module.MountRoutes(mux))
+
+	resetReq := httptest.NewRequest(http.MethodPost, "/sessions/s-x/games/bt11/reset", bytes.NewReader([]byte(`{}`)))
+	resetRR := httptest.NewRecorder()
+	mux.ServeHTTP(resetRR, resetReq)
+	require.Equal(t, http.StatusOK, resetRR.Code)
+
+	var resetPayload map[string]any
+	require.NoError(t, json.NewDecoder(resetRR.Body).Decode(&resetPayload))
+	require.Equal(t, "guid-raw", resetPayload["guid"])
+	require.Equal(t, "RUNNING", resetPayload["state"])
+	require.EqualValues(t, float64(0), resetPayload["levels_completed"])
+	require.Equal(t, []any{}, resetPayload["win_levels"])
+	require.Equal(t, []any{}, resetPayload["available_actions"])
+	require.Equal(t, []any{}, resetPayload["frame"])
+	require.Equal(t, "s-x", resetPayload["session_id"])
+	require.Equal(t, "bt11", resetPayload["game_id"])
+
+	actionReq := httptest.NewRequest(http.MethodPost, "/sessions/s-x/games/bt11/actions", bytes.NewReader([]byte(`{"action":"ACTION1"}`)))
+	actionRR := httptest.NewRecorder()
+	mux.ServeHTTP(actionRR, actionReq)
+	require.Equal(t, http.StatusOK, actionRR.Code)
+
+	var actionPayload map[string]any
+	require.NoError(t, json.NewDecoder(actionRR.Body).Decode(&actionPayload))
+	require.Equal(t, "ACTION1", actionPayload["action"])
+	require.EqualValues(t, float64(2), actionPayload["levels_completed"])
+	require.Equal(t, []any{float64(1), float64(0), float64(3)}, actionPayload["win_levels"])
+	require.Equal(t, []any{"ACTION1"}, actionPayload["available_actions"])
+	require.Equal(t, []any{
+		[]any{float64(1), float64(0), float64(3)},
+		[]any{},
+	}, actionPayload["frame"])
 }
 
 func TestModule_ReflectionAndSchemas(t *testing.T) {

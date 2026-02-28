@@ -198,12 +198,11 @@ func (m *Module) handleSessionReset(w http.ResponseWriter, req *http.Request, se
 		writeArcError(w, err)
 		return
 	}
-	if guid, _ := frame["guid"].(string); strings.TrimSpace(guid) != "" {
+	frame = normalizeFrameEnvelope(frame, sessionID, gameID, "")
+	if guid := strings.TrimSpace(asString(frame["guid"])); guid != "" {
 		m.sessions.UpsertGUID(sessionID, gameID, guid)
 	}
 	m.events.Append(sessionID, gameID, "arc.game.reset", fmt.Sprintf("Game %s reset", gameID), nil)
-	frame["session_id"] = sessionID
-	frame["game_id"] = gameID
 	writeJSON(w, http.StatusOK, frame)
 }
 
@@ -248,15 +247,163 @@ func (m *Module) handleSessionAction(w http.ResponseWriter, req *http.Request, s
 		writeArcError(w, err)
 		return
 	}
-	if newGUID, _ := frame["guid"].(string); strings.TrimSpace(newGUID) != "" {
+	frame = normalizeFrameEnvelope(frame, sessionID, gameID, action)
+	if newGUID := strings.TrimSpace(asString(frame["guid"])); newGUID != "" {
 		m.sessions.UpsertGUID(sessionID, gameID, newGUID)
 	}
 	m.events.Append(sessionID, gameID, "arc.action.completed", action, map[string]any{"action": action})
-
-	frame["session_id"] = sessionID
-	frame["game_id"] = gameID
-	frame["action"] = action
 	writeJSON(w, http.StatusOK, frame)
+}
+
+func normalizeFrameEnvelope(frame map[string]any, sessionID, gameID, action string) map[string]any {
+	out := cloneMap(frame)
+	if out == nil {
+		out = map[string]any{}
+	}
+	out["session_id"] = strings.TrimSpace(sessionID)
+	out["game_id"] = strings.TrimSpace(gameID)
+	out["guid"] = strings.TrimSpace(asString(out["guid"]))
+	out["state"] = normalizeGameState(out["state"])
+	out["levels_completed"] = coerceInt(out["levels_completed"])
+	out["win_levels"] = normalizeIntSlice(out["win_levels"])
+	out["available_actions"] = normalizeStringSlice(out["available_actions"])
+	out["frame"] = normalizeFrameGrid(out["frame"])
+	if strings.TrimSpace(action) != "" {
+		out["action"] = strings.TrimSpace(action)
+	}
+	return out
+}
+
+func normalizeGameState(value any) string {
+	state := strings.ToUpper(strings.TrimSpace(asString(value)))
+	switch state {
+	case "RUNNING", "WON", "LOST", "IDLE":
+		return state
+	default:
+		return "IDLE"
+	}
+}
+
+func normalizeStringSlice(value any) []string {
+	items, ok := value.([]any)
+	if !ok {
+		if typed, ok := value.([]string); ok {
+			return append([]string(nil), typed...)
+		}
+		return []string{}
+	}
+	ret := make([]string, 0, len(items))
+	for _, item := range items {
+		if s, ok := item.(string); ok {
+			s = strings.TrimSpace(s)
+			if s != "" {
+				ret = append(ret, s)
+			}
+		}
+	}
+	return ret
+}
+
+func normalizeIntSlice(value any) []int {
+	items, ok := value.([]any)
+	if !ok {
+		if typed, ok := value.([]int); ok {
+			return append([]int(nil), typed...)
+		}
+		if typed, ok := value.([]float64); ok {
+			ret := make([]int, 0, len(typed))
+			for _, item := range typed {
+				ret = append(ret, int(item))
+			}
+			return ret
+		}
+		return []int{}
+	}
+	ret := make([]int, 0, len(items))
+	for _, item := range items {
+		ret = append(ret, coerceInt(item))
+	}
+	return ret
+}
+
+func normalizeFrameGrid(value any) [][]int {
+	rows, ok := value.([]any)
+	if !ok {
+		if typed, ok := value.([][]int); ok {
+			out := make([][]int, 0, len(typed))
+			for _, row := range typed {
+				out = append(out, append([]int(nil), row...))
+			}
+			return out
+		}
+		return [][]int{}
+	}
+	ret := make([][]int, 0, len(rows))
+	for _, rowValue := range rows {
+		cells, ok := rowValue.([]any)
+		if !ok {
+			ret = append(ret, []int{})
+			continue
+		}
+		row := make([]int, 0, len(cells))
+		for _, cell := range cells {
+			row = append(row, coerceInt(cell))
+		}
+		ret = append(ret, row)
+	}
+	return ret
+}
+
+func coerceInt(value any) int {
+	switch v := value.(type) {
+	case int:
+		return v
+	case int8:
+		return int(v)
+	case int16:
+		return int(v)
+	case int32:
+		return int(v)
+	case int64:
+		return int(v)
+	case uint:
+		return int(v)
+	case uint8:
+		return int(v)
+	case uint16:
+		return int(v)
+	case uint32:
+		return int(v)
+	case uint64:
+		return int(v)
+	case float32:
+		return int(v)
+	case float64:
+		return int(v)
+	case json.Number:
+		i, err := v.Int64()
+		if err == nil {
+			return int(i)
+		}
+		f, err := v.Float64()
+		if err == nil {
+			return int(f)
+		}
+	}
+	return 0
+}
+
+func asString(value any) string {
+	switch v := value.(type) {
+	case nil:
+		return ""
+	case string:
+		return v
+	case json.Number:
+		return v.String()
+	default:
+		return ""
+	}
 }
 
 func decodeOptionalObject(req *http.Request) (map[string]any, error) {
