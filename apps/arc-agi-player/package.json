@@ -1,0 +1,27 @@
+{
+  "name": "@hypercard/arc-agi-player",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./launcher": "./src/launcher/public.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@hypercard/desktop-os": "workspace:*",
+    "@hypercard/engine": "workspace:*",
+    "@reduxjs/toolkit": "^2.5.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-redux": "^9.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "msw": "^2.4.9",
+    "msw-storybook-addon": "^2.0.4",
+    "typescript": "~5.7.0"
+  }
+}

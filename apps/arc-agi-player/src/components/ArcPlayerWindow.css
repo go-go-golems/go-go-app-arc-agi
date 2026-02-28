@@ -1,0 +1,55 @@
+[data-widget="hypercard"] [data-part="arc-player-window"] {
+  display: flex;
+  flex-direction: column;
+  width: 660px;
+  min-height: 480px;
+  background: var(--hc-surface, #111);
+  color: var(--hc-text, #eee);
+  font-family: var(--hc-font-mono, monospace);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--hc-border, #333);
+}
+
+/* Header / title bar info strip */
+[data-widget="hypercard"] [data-part="arc-player-header"] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: var(--hc-surface-secondary, #1a1a1a);
+  border-bottom: 1px solid var(--hc-border, #333);
+  font-size: 12px;
+}
+
+[data-widget="hypercard"] [data-part="arc-player-title"] {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+[data-widget="hypercard"] [data-part="arc-player-level"] {
+  color: var(--hc-text-secondary, #999);
+}
+
+[data-widget="hypercard"] [data-part="arc-player-timer"] {
+  margin-left: auto;
+  color: var(--hc-text-secondary, #999);
+}
+
+/* Main body: grid + sidebar */
+[data-widget="hypercard"] [data-part="arc-player-body"] {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Loading state */
+[data-widget="hypercard"] [data-part="arc-player-loading"] {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #777;
+  font-size: 14px;
+}

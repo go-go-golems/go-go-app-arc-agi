@@ -17,6 +17,7 @@ type Module struct {
 }
 
 func NewModule(config ModuleConfig) (*Module, error) {
+	config = normalizeConfig(config)
 	driver, err := newRuntimeDriver(config)
 	if err != nil {
 		return nil, err
