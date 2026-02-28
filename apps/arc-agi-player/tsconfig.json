@@ -11,7 +11,8 @@
     "rootDir": "src",
     "paths": {
       "@hypercard/desktop-os": ["../../../go-go-os/packages/desktop-os/src"],
-      "@hypercard/engine": ["../../../go-go-os/packages/engine/src"]
+      "@hypercard/engine": ["../../../go-go-os/packages/engine/src"],
+      "@hypercard/hypercard-runtime": ["../../../go-go-os/packages/hypercard-runtime/src"]
     }
   },
   "include": ["src"]

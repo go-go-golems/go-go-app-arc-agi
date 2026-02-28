@@ -1,9 +1,8 @@
 import {
   debugReducer,
-  hypercardArtifactsReducer,
   notificationsReducer,
-  pluginCardRuntimeReducer,
 } from '@hypercard/engine';
+import { hypercardArtifactsReducer, pluginCardRuntimeReducer } from '@hypercard/hypercard-runtime';
 import { windowingReducer } from '@hypercard/engine/desktop-core';
 import { configureStore } from '@reduxjs/toolkit';
 import { arcApi } from '../api/arcApi';

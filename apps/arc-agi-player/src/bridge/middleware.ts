@@ -1,4 +1,5 @@
-import { showToast, authorizeDomainIntent, ingestRuntimeIntent } from '@hypercard/engine';
+import { showToast } from '@hypercard/engine';
+import { authorizeDomainIntent, ingestRuntimeIntent } from '@hypercard/hypercard-runtime';
 import type { Middleware } from '@reduxjs/toolkit';
 import {
   arcCommandFailed,
