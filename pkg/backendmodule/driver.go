@@ -18,9 +18,9 @@ type ArcRuntimeDriver interface {
 func newRuntimeDriver(config ModuleConfig) (ArcRuntimeDriver, error) {
 	switch strings.ToLower(strings.TrimSpace(config.Driver)) {
 	case "", "dagger":
-		return &NoopDriver{}, nil
+		return NewDaggerDriver(config), nil
 	case "raw":
-		return &NoopDriver{}, nil
+		return NewRawProcessDriver(config), nil
 	default:
 		return nil, fmt.Errorf("unsupported arc runtime driver: %q", config.Driver)
 	}
@@ -40,13 +40,3 @@ func waitForDriverHealthy(ctx context.Context, driver ArcRuntimeDriver) error {
 		}
 	}
 }
-
-type NoopDriver struct{}
-
-func (d *NoopDriver) Init(context.Context) error  { return nil }
-func (d *NoopDriver) Start(context.Context) error { return nil }
-func (d *NoopDriver) Stop(context.Context) error  { return nil }
-func (d *NoopDriver) Health(context.Context) error {
-	return nil
-}
-func (d *NoopDriver) BaseURL() string { return "http://127.0.0.1:0" }

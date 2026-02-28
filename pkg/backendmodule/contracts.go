@@ -58,7 +58,18 @@ type ReflectionSchemaRef struct {
 type ModuleConfig struct {
 	EnableReflection bool
 	Driver           string
+	RuntimeMode      string
 	ArcRepoRoot      string
 	StartupTimeout   time.Duration
 	RequestTimeout   time.Duration
+	APIKey           string
+	MaxSessionEvents int
+
+	DaggerBinary        string
+	DaggerImage         string
+	DaggerContainerPort int
+	DaggerProgress      string
+
+	RawListenAddr string
+	PythonCommand []string
 }

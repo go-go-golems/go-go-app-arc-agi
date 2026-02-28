@@ -32,7 +32,7 @@ func NewModuleWithRuntime(config ModuleConfig, driver ArcRuntimeDriver) (*Module
 		config: config,
 		driver: driver,
 		client: NewHTTPArcAPIClient(driver, config.RequestTimeout),
-		events: NewSessionEventStore(200),
+		events: NewSessionEventStore(config.MaxSessionEvents),
 	}, nil
 }
 
@@ -45,11 +45,44 @@ func normalizeConfig(config ModuleConfig) ModuleConfig {
 	if config.ArcRepoRoot == "" {
 		config.ArcRepoRoot = "./2026-02-27--arc-agi/ARC-AGI"
 	}
+	config.RuntimeMode = strings.ToLower(strings.TrimSpace(config.RuntimeMode))
+	if config.RuntimeMode == "" {
+		config.RuntimeMode = "offline"
+	}
 	if config.StartupTimeout <= 0 {
 		config.StartupTimeout = 45 * time.Second
 	}
 	if config.RequestTimeout <= 0 {
 		config.RequestTimeout = 30 * time.Second
+	}
+	config.APIKey = strings.TrimSpace(config.APIKey)
+	if config.APIKey == "" {
+		config.APIKey = "1234"
+	}
+	if config.MaxSessionEvents <= 0 {
+		config.MaxSessionEvents = 200
+	}
+	config.DaggerBinary = strings.TrimSpace(config.DaggerBinary)
+	if config.DaggerBinary == "" {
+		config.DaggerBinary = "dagger"
+	}
+	config.DaggerImage = strings.TrimSpace(config.DaggerImage)
+	if config.DaggerImage == "" {
+		config.DaggerImage = "python:3.12-slim"
+	}
+	if config.DaggerContainerPort <= 0 {
+		config.DaggerContainerPort = 18081
+	}
+	config.DaggerProgress = strings.TrimSpace(config.DaggerProgress)
+	if config.DaggerProgress == "" {
+		config.DaggerProgress = "plain"
+	}
+	config.RawListenAddr = strings.TrimSpace(config.RawListenAddr)
+	if config.RawListenAddr == "" {
+		config.RawListenAddr = "127.0.0.1:18081"
+	}
+	if len(config.PythonCommand) == 0 {
+		config.PythonCommand = []string{"uv", "run", "python"}
 	}
 	return config
 }
