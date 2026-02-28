@@ -91,6 +91,23 @@ function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
 
+function extractGamesPayload(value: unknown): unknown[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  const record = asObject(value);
+  if (Array.isArray(record.games)) {
+    return record.games;
+  }
+  if (Array.isArray(record.items)) {
+    return record.items;
+  }
+  if (Array.isArray(record.results)) {
+    return record.results;
+  }
+  return [];
+}
+
 function mergeMeta(payload: ArcCommandRequestPayload, actionMeta?: RuntimeActionMeta): ArcCommandMeta {
   return {
     ...payload.meta,
@@ -198,10 +215,10 @@ async function executeArcCommand(
   const args = asObject(payload.args);
 
   if (payload.op === 'list-games') {
-    const games = await requestUnknown(fetchImpl, '/api/apps/arc-agi/games', { method: 'GET' });
+    const responsePayload = await requestUnknown(fetchImpl, '/api/apps/arc-agi/games', { method: 'GET' });
     return {
       result: {
-        games: asArray(games),
+        games: extractGamesPayload(responsePayload),
       },
     };
   }
@@ -396,8 +413,19 @@ function buildSuccessRuntimePatch(
   if (op === 'list-games') {
     const availableGames = asArray(execution.result.games)
       .map((item) => {
+        if (typeof item === 'string' && item.trim().length > 0) {
+          return item.trim();
+        }
         const game = asObject(item);
-        return asString(game.game_id) ?? asString(game.gameId) ?? asString(game.id);
+        const nested = asObject(game.game);
+        return (
+          asString(game.game_id) ??
+          asString(game.gameId) ??
+          asString(game.id) ??
+          asString(nested.game_id) ??
+          asString(nested.gameId) ??
+          asString(nested.id)
+        );
       })
       .filter((value): value is string => typeof value === 'string' && value.length > 0);
     patch.arcAvailableGames = Array.from(new Set(availableGames));

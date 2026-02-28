@@ -52,6 +52,23 @@ function asNumber(value: unknown): number | undefined {
   return undefined;
 }
 
+function extractGamesPayload(value: unknown): unknown[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  const record = asObject(value);
+  if (Array.isArray(record.games)) {
+    return record.games;
+  }
+  if (Array.isArray(record.items)) {
+    return record.items;
+  }
+  if (Array.isArray(record.results)) {
+    return record.results;
+  }
+  return [];
+}
+
 function toMeta(intent: DomainIntentEnvelope, payload: ArcCommandRequestPayload): ArcCommandMeta {
   return {
     source: 'plugin-runtime',
@@ -161,8 +178,8 @@ async function executeArcCommand(payload: ArcCommandRequestPayload): Promise<{
   const args = asObject(payload.args);
 
   if (payload.op === 'list-games') {
-    const payload = await requestUnknown('/api/apps/arc-agi/games', { method: 'GET' });
-    return { result: { games: asArray(payload) } };
+    const responsePayload = await requestUnknown('/api/apps/arc-agi/games', { method: 'GET' });
+    return { result: { games: extractGamesPayload(responsePayload) } };
   }
 
   if (payload.op === 'create-session') {
@@ -246,10 +263,18 @@ function extractGameIds(result: Record<string, unknown>): string[] {
   const seen = new Set<string>();
   const games = asArray(result.games);
   for (const item of games) {
+    if (typeof item === 'string' && item.trim().length > 0) {
+      seen.add(item.trim());
+      continue;
+    }
     const game = asObject(item);
+    const nested = asObject(game.game);
     const gameId = asString(game.game_id) ?? asString(game.gameId) ?? asString(game.id);
+    const nestedGameId = asString(nested.game_id) ?? asString(nested.gameId) ?? asString(nested.id);
     if (gameId) {
       seen.add(gameId);
+    } else if (nestedGameId) {
+      seen.add(nestedGameId);
     }
   }
   return Array.from(seen);
