@@ -48,14 +48,14 @@ tag-patch:
 
 release:
 	git push origin --tags
-	GOWORK=off GOPROXY=proxy.golang.org go list -m github.com/go-go-golems/XXX@$(shell svu current)
+	GOWORK=off GOPROXY=proxy.golang.org go list -m github.com/go-go-golems/go-go-app-arc-agi@$(shell svu current)
 
 bump-glazed:
 	GOWORK=off go get github.com/go-go-golems/glazed@latest
 	GOWORK=off go get github.com/go-go-golems/clay@latest
 	GOWORK=off go mod tidy
 
-XXX_BINARY=$(shell which XXX)
+GO_GO_APP_ARC_AGI_BINARY=$(shell which go-go-app-arc-agi)
 install:
-	GOWORK=off go build -o ./dist/XXX ./cmd/XXX && \
-		cp ./dist/XXX $(XXX_BINARY)
+	GOWORK=off go build -o ./dist/go-go-app-arc-agi ./cmd/go-go-app-arc-agi && \
+		cp ./dist/go-go-app-arc-agi $(GO_GO_APP_ARC_AGI_BINARY)
