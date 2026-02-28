@@ -130,20 +130,31 @@ export function ArcPlayerWindow({ initialGameId }: ArcPlayerWindowProps) {
   const handleAction = useCallback(
     async (action: string, data?: Record<string, unknown>) => {
       if (!sessionId || !gameId) return;
+      let resolvedData = data;
+      // Some games require ACTION6 payload coordinates. When triggered from the sidebar
+      // button, provide a sensible default target (grid center) instead of failing silently.
+      if (action === 'ACTION6' && (!resolvedData || resolvedData.x == null || resolvedData.y == null)) {
+        const rows = currentFrame?.frame?.length ?? 0;
+        const cols = rows > 0 ? (currentFrame?.frame?.[0]?.length ?? 0) : 0;
+        resolvedData = {
+          x: cols > 0 ? Math.floor(cols / 2) : 0,
+          y: rows > 0 ? Math.floor(rows / 2) : 0,
+        };
+      }
       try {
         const frame = await performAction({
           sessionId,
           gameId,
-          action: { action, data },
+          action: { action, data: resolvedData },
         }).unwrap();
         dispatch(setFrame(frame));
-        const entry: ActionLogEntry = { action, data, timestamp: Date.now() };
+        const entry: ActionLogEntry = { action, data: resolvedData, timestamp: Date.now() };
         dispatch(pushAction(entry));
       } catch {
         // Action failed — no state change
       }
     },
-    [sessionId, gameId, performAction, dispatch],
+    [sessionId, gameId, performAction, dispatch, currentFrame],
   );
 
   const handleReset = useCallback(async () => {
