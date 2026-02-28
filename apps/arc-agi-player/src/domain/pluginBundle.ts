@@ -25,7 +25,7 @@ defineStackBundle(({ ui }) => {
 
   function latestCommand(globalState, requestId) {
     if (!requestId) {
-      return null;
+      return {};
     }
 
     const commands = asRecord(asRecord(arcBridgeDomain(globalState).commands).byId);
@@ -54,7 +54,7 @@ defineStackBundle(({ ui }) => {
       home: {
         render({ sessionState, globalState }) {
           const info = arcSessionInfo(sessionState);
-          const command = latestCommand(globalState, info.requestId);
+          const command = asRecord(latestCommand(globalState, info.requestId));
           const commandStatus = String(command.status || info.status || 'idle');
 
           return ui.panel([
