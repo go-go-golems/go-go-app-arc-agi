@@ -47,7 +47,7 @@ defineStackBundle(({ ui }) => {
       arcStatus: 'idle',
       arcLastRequestId: '',
       arcSessionId: '',
-      arcGameId: '',
+      arcGameId: 'bt11',
       arcLastError: '',
     },
     cards: {
@@ -63,6 +63,16 @@ defineStackBundle(({ ui }) => {
             ui.text('Runtime requestId: ' + (info.requestId || '-')),
             ui.text('ARC sessionId: ' + (info.sessionId || '-')),
             ui.text('ARC gameId: ' + (info.gameId || '-')),
+            ui.row([
+              ui.text('Game ID:'),
+              ui.input(info.gameId || '', { onChange: { handler: 'setGameId' } }),
+            ]),
+            ui.row([
+              ui.button('bt11', { onClick: { handler: 'quickGame', args: { gameId: 'bt11' } } }),
+              ui.button('vc33', { onClick: { handler: 'quickGame', args: { gameId: 'vc33' } } }),
+              ui.button('ft09', { onClick: { handler: 'quickGame', args: { gameId: 'ft09' } } }),
+              ui.button('ls20', { onClick: { handler: 'quickGame', args: { gameId: 'ls20' } } }),
+            ]),
             info.lastError ? ui.text('Last error: ' + info.lastError) : ui.text('Last error: -'),
             ui.row([
               ui.button('Create Session', { onClick: { handler: 'createSession' } }),
@@ -79,6 +89,19 @@ defineStackBundle(({ ui }) => {
         },
 
         handlers: {
+          setGameId({ dispatchSessionAction }, args) {
+            const value = String(asRecord(args).value || '').trim();
+            dispatchSessionAction('patch', { arcGameId: value });
+          },
+
+          quickGame({ dispatchSessionAction }, args) {
+            const gameId = String(asRecord(args).gameId || '').trim();
+            if (!gameId) {
+              return;
+            }
+            dispatchSessionAction('patch', { arcGameId: gameId });
+          },
+
           createSession({ dispatchDomainAction, dispatchSessionAction }) {
             const requestId = nextRequestId('arc-create-session');
             dispatchSessionAction('patch', {
@@ -95,8 +118,12 @@ defineStackBundle(({ ui }) => {
 
           resetGame({ dispatchDomainAction, dispatchSessionAction, dispatchSystemCommand, sessionState }) {
             const info = arcSessionInfo(sessionState);
-            if (!info.sessionId || !info.gameId) {
+            if (!info.sessionId) {
               notify(dispatchSystemCommand, 'Create a session first.');
+              return;
+            }
+            if (!info.gameId) {
+              notify(dispatchSystemCommand, 'Set a Game ID first (e.g. bt11).');
               return;
             }
 
@@ -118,8 +145,12 @@ defineStackBundle(({ ui }) => {
 
           doAction({ dispatchDomainAction, dispatchSessionAction, dispatchSystemCommand, sessionState }, args) {
             const info = arcSessionInfo(sessionState);
-            if (!info.sessionId || !info.gameId) {
+            if (!info.sessionId) {
               notify(dispatchSystemCommand, 'Create a session first.');
+              return;
+            }
+            if (!info.gameId) {
+              notify(dispatchSystemCommand, 'Set a Game ID first (e.g. bt11).');
               return;
             }
 

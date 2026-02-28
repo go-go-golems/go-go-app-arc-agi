@@ -217,6 +217,24 @@ function mirrorRuntimeSessionState(
   );
 }
 
+function buildSuccessRuntimePatch(requestId: string, execution: { sessionId?: string; gameId?: string; result: Record<string, unknown> }) {
+  const patch: Record<string, unknown> = {
+    arcStatus: 'succeeded',
+    arcLastRequestId: requestId,
+    arcLastError: null,
+    arcLastResult: execution.result,
+  };
+
+  if (execution.sessionId) {
+    patch.arcSessionId = execution.sessionId;
+  }
+  if (execution.gameId) {
+    patch.arcGameId = execution.gameId;
+  }
+
+  return patch;
+}
+
 export function ArcPendingIntentEffectHost() {
   const dispatch = useDispatch();
   const pendingDomainIntents = useSelector((state: unknown) => selectPendingDomainIntents(state as any));
@@ -306,14 +324,12 @@ export function ArcPendingIntentEffectHost() {
           }),
         );
 
-        mirrorRuntimeSessionState(dispatch as any, nextIntent.sessionId, nextIntent.cardId, {
-          arcStatus: 'succeeded',
-          arcLastRequestId: payload.requestId,
-          arcLastError: null,
-          arcSessionId: execution.sessionId,
-          arcGameId: execution.gameId,
-          arcLastResult: execution.result,
-        });
+        mirrorRuntimeSessionState(
+          dispatch as any,
+          nextIntent.sessionId,
+          nextIntent.cardId,
+          buildSuccessRuntimePatch(payload.requestId, execution),
+        );
       })
       .catch((error) => {
         const normalized = normalizeError(error);
@@ -339,4 +355,3 @@ export function ArcPendingIntentEffectHost() {
 
   return null;
 }
-

@@ -344,6 +344,29 @@ function mirrorRuntimeSessionState(
   );
 }
 
+function buildSuccessRuntimePatch(
+  requestId: string,
+  execution: ArcBridgeExecutionResult,
+): Record<string, unknown> {
+  const patch: Record<string, unknown> = {
+    arcStatus: 'succeeded',
+    arcLastRequestId: requestId,
+    arcLastError: null,
+    arcLastResult: execution.result,
+  };
+
+  const sessionId = execution.sessionSnapshot?.sessionId;
+  const gameId = execution.sessionSnapshot?.gameId ?? execution.gameSnapshot?.gameId;
+  if (sessionId) {
+    patch.arcSessionId = sessionId;
+  }
+  if (gameId) {
+    patch.arcGameId = gameId;
+  }
+
+  return patch;
+}
+
 export function createArcBridgeMiddleware(options: ArcBridgeMiddlewareOptions = {}): Middleware {
   const fetchImpl = options.fetchImpl ?? fetch;
   const inFlight = new Set<string>();
@@ -442,14 +465,7 @@ export function createArcBridgeMiddleware(options: ArcBridgeMiddlewareOptions = 
           }),
         );
 
-        mirrorRuntimeSessionState(store.dispatch, meta, {
-          arcStatus: 'succeeded',
-          arcLastRequestId: payload.requestId,
-          arcLastError: null,
-          arcSessionId: execution.sessionSnapshot?.sessionId,
-          arcGameId: execution.sessionSnapshot?.gameId ?? execution.gameSnapshot?.gameId,
-          arcLastResult: execution.result,
-        });
+        mirrorRuntimeSessionState(store.dispatch, meta, buildSuccessRuntimePatch(payload.requestId, execution));
       } catch (error) {
         const normalized = normalizeError(error);
         store.dispatch(
