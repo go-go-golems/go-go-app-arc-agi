@@ -163,15 +163,17 @@ func TestModule_NormalizesFramePayloadsAtHTTPBoundary(t *testing.T) {
 		},
 		actionResponse: map[string]any{
 			"guid":             "guid-raw",
-			"state":            "active",
+			"state":            "NOT_FINISHED",
 			"levels_completed": 2.0,
 			"win_levels":       []any{1, "x", 3.0},
 			"available_actions": []any{
 				1, "ACTION6", map[string]any{"id": 3}, 7, "x",
 			},
 			"frame": []any{
-				[]any{1, "x", 3.0},
-				"bad-row",
+				[]any{
+					[]any{1, "x", 3.0},
+					[]any{4, 5, "z"},
+				},
 			},
 		},
 	}
@@ -209,7 +211,7 @@ func TestModule_NormalizesFramePayloadsAtHTTPBoundary(t *testing.T) {
 	require.Equal(t, []any{"ACTION1", "ACTION6", "ACTION3", "ACTION7"}, actionPayload["available_actions"])
 	require.Equal(t, []any{
 		[]any{float64(1), float64(0), float64(3)},
-		[]any{},
+		[]any{float64(4), float64(5), float64(0)},
 	}, actionPayload["frame"])
 }
 

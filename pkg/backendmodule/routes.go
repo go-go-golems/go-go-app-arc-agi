@@ -291,6 +291,8 @@ func normalizeGameState(value any) string {
 	switch state {
 	case "RUNNING", "ACTIVE", "PLAYING", "IN_PROGRESS":
 		return "RUNNING"
+	case "NOT_FINISHED":
+		return "RUNNING"
 	case "WON", "WIN", "COMPLETED", "SUCCESS":
 		return "WON"
 	case "LOST", "LOSS", "FAILED", "FAILURE", "DONE":
@@ -394,21 +396,37 @@ func normalizeIntSlice(value any) []int {
 }
 
 func normalizeFrameGrid(value any) [][]int {
+	if matrix, ok := value.([][]int); ok {
+		out := make([][]int, 0, len(matrix))
+		for _, row := range matrix {
+			out = append(out, append([]int(nil), row...))
+		}
+		return out
+	}
+
 	rows, ok := value.([]any)
 	if !ok {
-		if typed, ok := value.([][]int); ok {
-			out := make([][]int, 0, len(typed))
-			for _, row := range typed {
-				out = append(out, append([]int(nil), row...))
-			}
-			return out
-		}
 		return [][]int{}
 	}
+
+	// ARC runtime commonly returns 3D frame payloads with one plane:
+	// frame[plane][row][col]. Collapse to the first matrix plane.
+	if len(rows) > 0 {
+		if planeRows, ok := rows[0].([]any); ok && len(planeRows) > 0 {
+			if _, nested := planeRows[0].([]any); nested {
+				rows = planeRows
+			}
+		}
+	}
+
 	ret := make([][]int, 0, len(rows))
 	for _, rowValue := range rows {
 		cells, ok := rowValue.([]any)
 		if !ok {
+			if typed, ok := rowValue.([]int); ok {
+				ret = append(ret, append([]int(nil), typed...))
+				continue
+			}
 			ret = append(ret, []int{})
 			continue
 		}
