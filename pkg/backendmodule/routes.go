@@ -220,7 +220,7 @@ func (m *Module) handleSessionAction(w http.ResponseWriter, req *http.Request, s
 		return
 	}
 	action := normalizeActionName(actionReq.Action)
-	if action == "" || action == "RESET" {
+	if !isSupportedAction(action) {
 		writeJSONError(w, http.StatusBadRequest, "action must be one of ACTION1..ACTION7")
 		return
 	}

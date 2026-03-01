@@ -440,10 +440,8 @@ export function createArcBridgeMiddleware(options: ArcBridgeMiddlewareOptions = 
   const inFlight = new Set<string>();
 
   return (store) => (next) => (action) => {
-    const result = next(action);
-
     if (!isArcCommandRequest(action)) {
-      return result;
+      return next(action);
     }
 
     const parsed = validateArcCommandRequestPayload(action.payload);
@@ -461,9 +459,10 @@ export function createArcBridgeMiddleware(options: ArcBridgeMiddlewareOptions = 
           }),
         );
       }
-      return result;
+      return action;
     }
 
+    const result = next(action);
     const payload = parsed.payload;
     const meta = mergeMeta(payload, action.meta);
 

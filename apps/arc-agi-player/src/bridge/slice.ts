@@ -8,6 +8,7 @@ import type {
   ArcGameSnapshot,
   ArcSessionSnapshot,
 } from './contracts';
+import { validateArcCommandRequestPayload } from './contracts';
 
 const MAX_COMMAND_HISTORY = 250;
 const MAX_RECENT_ERRORS = 100;
@@ -75,13 +76,18 @@ const arcBridgeSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(arcCommandRequested, (state, action) => {
+        const parsed = validateArcCommandRequestPayload(action.payload);
+        if (!parsed.ok) {
+          return;
+        }
+        const payload = parsed.payload;
         upsertCommand(state, {
-          requestId: action.payload.requestId,
-          op: action.payload.op,
-          args: action.payload.args,
+          requestId: payload.requestId,
+          op: payload.op,
+          args: payload.args,
           status: 'requested',
           requestedAt: nowIso(),
-          meta: action.payload.meta,
+          meta: payload.meta,
         });
       })
       .addCase(arcCommandStarted, (state, action) => {

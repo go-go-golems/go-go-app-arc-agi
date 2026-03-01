@@ -150,6 +150,34 @@ func TestModule_ActionRequiresResetGUID(t *testing.T) {
 	require.Contains(t, rr.Body.String(), "call reset first")
 }
 
+func TestModule_ActionRejectsUnsupportedActionToken(t *testing.T) {
+	module := newModuleForTests(t)
+	mux := http.NewServeMux()
+	require.NoError(t, module.MountRoutes(mux))
+
+	// Prime GUID so validation failure is about action token, not reset precondition.
+	resetReq := httptest.NewRequest(http.MethodPost, "/sessions/s-3/games/bt11/reset", bytes.NewReader([]byte(`{}`)))
+	resetRR := httptest.NewRecorder()
+	mux.ServeHTTP(resetRR, resetReq)
+	require.Equal(t, http.StatusOK, resetRR.Code)
+
+	for _, body := range []string{
+		`{"action":"ACTION9"}`,
+		`{"action":"RESET"}`,
+		`{"action":"not-an-action"}`,
+		`{"action":""}`,
+	} {
+		req := httptest.NewRequest(http.MethodPost, "/sessions/s-3/games/bt11/actions", bytes.NewReader([]byte(body)))
+		rr := httptest.NewRecorder()
+		mux.ServeHTTP(rr, req)
+		require.Equal(t, http.StatusBadRequest, rr.Code, "body=%s", body)
+		require.Contains(t, rr.Body.String(), "action must be one of ACTION1..ACTION7")
+	}
+
+	client := module.client.(*fakeClient)
+	require.Nil(t, client.lastActionPayload)
+}
+
 func TestModule_NormalizesFramePayloadsAtHTTPBoundary(t *testing.T) {
 	module := newModuleForTests(t)
 	module.client = &fakeClient{
