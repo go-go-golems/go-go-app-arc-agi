@@ -1,0 +1,37 @@
+[data-widget="hypercard"] [data-part="arc-action-log"] {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  background: var(--hc-surface-secondary, #111);
+  border-top: 1px solid var(--hc-border, #333);
+  font-family: var(--hc-font-mono, monospace);
+  font-size: 13px;
+  color: var(--hc-text, #ccc);
+  min-height: 32px;
+  max-height: 32px;
+  scrollbar-width: none;
+}
+
+[data-widget="hypercard"] [data-part="arc-action-log"]::-webkit-scrollbar {
+  display: none;
+}
+
+[data-widget="hypercard"] [data-part="arc-action-log"][data-state="empty"] {
+  justify-content: center;
+}
+
+[data-widget="hypercard"] [data-part="arc-action-log-placeholder"] {
+  color: #555;
+  font-style: italic;
+  font-size: 11px;
+}
+
+[data-widget="hypercard"] [data-part="arc-action-log-entry"] {
+  flex-shrink: 0;
+  color: var(--hc-text-secondary, #aaa);
+}
