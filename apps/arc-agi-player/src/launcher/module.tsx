@@ -1,6 +1,6 @@
 import type { LaunchableAppModule, LaunchReason } from '@hypercard/desktop-os';
 import type { OpenWindowPayload } from '@hypercard/engine/desktop-core';
-import { PluginCardSessionHost } from '@hypercard/hypercard-runtime';
+import { RuntimeSurfaceSessionHost } from '@hypercard/hypercard-runtime';
 import type { DesktopContribution, WindowContentAdapter } from '@hypercard/engine/desktop-react';
 import type { ReactNode } from 'react';
 import { useRef } from 'react';
@@ -109,7 +109,7 @@ function createArcDemoCardAdapter(): WindowContentAdapter {
       return (
         <>
           <ArcPendingIntentEffectHost />
-          <PluginCardSessionHost
+          <RuntimeSurfaceSessionHost
             windowId={window.id}
             sessionId={window.content.card.cardSessionId}
             stack={ARC_DEMO_STACK}
