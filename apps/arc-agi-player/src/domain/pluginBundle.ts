@@ -70,6 +70,7 @@ defineRuntimeBundle(({ ui }) => {
   return {
     id: 'arc-agi-demo',
     title: 'ARC Demo Card',
+    packageIds: ["ui"],
     initialSessionState: {
       arcStatus: 'idle',
       arcLastRequestId: '',

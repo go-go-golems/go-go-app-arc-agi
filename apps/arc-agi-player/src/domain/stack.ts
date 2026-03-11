@@ -28,6 +28,7 @@ export const ARC_DEMO_STACK: CardStackDefinition = {
   icon: '🎮',
   homeCard: 'home',
   plugin: {
+    packageIds: ['ui'],
     bundleCode: ARC_DEMO_PLUGIN_BUNDLE,
     capabilities: {
       domain: ['arc', 'arcBridge'],
