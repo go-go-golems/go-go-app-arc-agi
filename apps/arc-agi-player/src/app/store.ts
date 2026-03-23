@@ -2,7 +2,7 @@ import {
   debugReducer,
   notificationsReducer,
 } from '@hypercard/engine';
-import { hypercardArtifactsReducer, pluginCardRuntimeReducer } from '@hypercard/hypercard-runtime';
+import { hypercardArtifactsReducer, runtimeSessionsReducer } from '@hypercard/hypercard-runtime';
 import { windowingReducer } from '@hypercard/engine/desktop-core';
 import { configureStore } from '@reduxjs/toolkit';
 import { arcApi } from '../api/arcApi';
@@ -13,7 +13,7 @@ function createArcPlayerStore() {
   const arcBridgeMiddleware = createArcBridgeMiddleware();
   return configureStore({
     reducer: {
-      pluginCardRuntime: pluginCardRuntimeReducer,
+      runtimeSessions: runtimeSessionsReducer,
       arcBridge: arcBridgeReducer,
       windowing: windowingReducer,
       notifications: notificationsReducer,

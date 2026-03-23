@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -450,9 +451,9 @@ func coerceInt(value any) int {
 	case int32:
 		return int(v)
 	case int64:
-		return int(v)
+		return clampInt64ToInt(v)
 	case uint:
-		return int(v)
+		return clampUint64ToInt(uint64(v))
 	case uint8:
 		return int(v)
 	case uint16:
@@ -460,22 +461,57 @@ func coerceInt(value any) int {
 	case uint32:
 		return int(v)
 	case uint64:
-		return int(v)
+		return clampUint64ToInt(v)
 	case float32:
-		return int(v)
+		return clampFloat64ToInt(float64(v))
 	case float64:
-		return int(v)
+		return clampFloat64ToInt(v)
 	case json.Number:
 		i, err := v.Int64()
 		if err == nil {
-			return int(i)
+			return clampInt64ToInt(i)
 		}
 		f, err := v.Float64()
 		if err == nil {
-			return int(f)
+			return clampFloat64ToInt(f)
 		}
 	}
 	return 0
+}
+
+const (
+	maxIntValue = int(^uint(0) >> 1)
+	minIntValue = -maxIntValue - 1
+)
+
+func clampInt64ToInt(v int64) int {
+	if v > int64(maxIntValue) {
+		return maxIntValue
+	}
+	if v < int64(minIntValue) {
+		return minIntValue
+	}
+	return int(v)
+}
+
+func clampUint64ToInt(v uint64) int {
+	if v > uint64(maxIntValue) {
+		return maxIntValue
+	}
+	return int(v)
+}
+
+func clampFloat64ToInt(v float64) int {
+	if math.IsNaN(v) {
+		return 0
+	}
+	if v > float64(maxIntValue) || math.IsInf(v, 1) {
+		return maxIntValue
+	}
+	if v < float64(minIntValue) || math.IsInf(v, -1) {
+		return minIntValue
+	}
+	return int(v)
 }
 
 func asString(value any) string {

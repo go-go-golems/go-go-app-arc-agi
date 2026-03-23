@@ -1,4 +1,4 @@
-import type { CardDefinition, CardStackDefinition } from '@hypercard/engine';
+import type { RuntimeSurfaceMeta, RuntimeBundleDefinition } from '@hypercard/engine';
 import { ARC_DEMO_PLUGIN_BUNDLE } from './pluginBundle';
 
 interface PluginCardMeta {
@@ -9,7 +9,7 @@ interface PluginCardMeta {
 
 const ARC_DEMO_CARD_META: PluginCardMeta[] = [{ id: 'home', title: 'ARC Demo', icon: '🎮' }];
 
-function toPluginCard(card: PluginCardMeta): CardDefinition {
+function toPluginCard(card: PluginCardMeta): RuntimeSurfaceMeta {
   return {
     id: card.id,
     type: 'plugin',
@@ -22,17 +22,18 @@ function toPluginCard(card: PluginCardMeta): CardDefinition {
   };
 }
 
-export const ARC_DEMO_STACK: CardStackDefinition = {
+export const ARC_DEMO_STACK: RuntimeBundleDefinition = {
   id: 'arc-agi-demo',
   name: 'ARC-AGI Demo',
   icon: '🎮',
-  homeCard: 'home',
+  homeSurface: 'home',
   plugin: {
+    packageIds: ['ui'],
     bundleCode: ARC_DEMO_PLUGIN_BUNDLE,
     capabilities: {
-      domain: ['arc'],
-      system: ['notify'],
+      domain: ['arc', 'arcBridge'],
+      system: ['notify.show'],
     },
   },
-  cards: Object.fromEntries(ARC_DEMO_CARD_META.map((card) => [card.id, toPluginCard(card)])),
+  surfaces: Object.fromEntries(ARC_DEMO_CARD_META.map((card) => [card.id, toPluginCard(card)])),
 };

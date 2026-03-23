@@ -1,5 +1,5 @@
 import { showToast } from '@hypercard/engine';
-import { authorizeDomainIntent, ingestRuntimeIntent } from '@hypercard/hypercard-runtime';
+import { authorizeDomainIntent, ingestRuntimeAction } from '@hypercard/hypercard-runtime';
 import type { Dispatch, Middleware, UnknownAction } from '@reduxjs/toolkit';
 import {
   arcCommandFailed,
@@ -46,7 +46,7 @@ interface PluginRuntimeLike {
 }
 
 interface RootStateLike {
-  pluginCardRuntime?: PluginRuntimeLike;
+  runtimeSessions?: PluginRuntimeLike;
   arcBridge?: {
     commands?: {
       byId?: Record<string, { status?: string }>;
@@ -340,7 +340,7 @@ function checkCapability(state: RootStateLike, meta: ArcCommandMeta): ArcBridgeC
     };
   }
 
-  const runtimeSession = state.pluginCardRuntime?.sessions?.[runtimeSessionId];
+  const runtimeSession = state.runtimeSessions?.sessions?.[runtimeSessionId];
   if (!runtimeSession?.capabilities) {
     return {
       code: 'capability_denied',
@@ -379,12 +379,11 @@ function mirrorRuntimeSessionState(
   }
 
   dispatch(
-    ingestRuntimeIntent({
+    ingestRuntimeAction({
       sessionId: runtimeSessionId,
       cardId: meta.cardId ?? 'home',
-      intent: {
-        scope: 'session',
-        actionType: 'patch',
+      action: {
+        type: 'filters.patch',
         payload,
       },
     }),

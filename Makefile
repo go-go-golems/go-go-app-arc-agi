@@ -1,14 +1,8 @@
-.PHONY: gifs
-
-all: gifs
+all: 
 
 VERSION=v0.1.14
 GORELEASER_ARGS ?= --skip=sign --snapshot --clean
 GORELEASER_TARGET ?= --single-target
-
-TAPES=$(wildcard doc/vhs/*tape)
-gifs: $(TAPES)
-	for i in $(TAPES); do vhs < $$i; done
 
 docker-lint:
 	docker run --rm -v $(shell pwd):/app -w /app golangci/golangci-lint:latest golangci-lint run -v
@@ -53,6 +47,7 @@ release:
 bump-glazed:
 	GOWORK=off go get github.com/go-go-golems/glazed@latest
 	GOWORK=off go get github.com/go-go-golems/clay@latest
+	GOWORK=off go get github.com/go-go-golems/go-go-os-backend@latest
 	GOWORK=off go mod tidy
 
 GO_GO_APP_ARC_AGI_BINARY=$(shell which go-go-app-arc-agi)

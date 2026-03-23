@@ -1,6 +1,6 @@
 import {
   dequeuePendingDomainIntent,
-  ingestRuntimeIntent,
+  ingestRuntimeAction,
   selectPendingDomainIntents,
 } from '@hypercard/hypercard-runtime';
 import {
@@ -24,7 +24,7 @@ interface DomainIntentEnvelope {
   sessionId: string;
   cardId: string;
   domain: string;
-  actionType: string;
+  type: string;
   payload?: unknown;
 }
 
@@ -249,12 +249,11 @@ function mirrorRuntimeSessionState(
   payload: Record<string, unknown>,
 ) {
   dispatch(
-    ingestRuntimeIntent({
+    ingestRuntimeAction({
       sessionId: runtimeSessionId,
       cardId,
-      intent: {
-        scope: 'session',
-        actionType: 'patch',
+      action: {
+        type: 'filters.patch',
         payload,
       },
     }),
@@ -319,7 +318,7 @@ export function ArcPendingIntentEffectHost() {
     }
 
     const nextIntent = (pendingDomainIntents as DomainIntentEnvelope[]).find(
-      (intent) => intent.domain === 'arc' && intent.actionType === 'command.request',
+      (intent) => intent.domain === 'arc' && intent.type === 'arc/command.request',
     );
     if (!nextIntent) {
       return;

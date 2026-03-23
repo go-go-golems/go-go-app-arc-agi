@@ -3,7 +3,9 @@ package backendmodule
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -93,15 +95,17 @@ func (p *processRuntime) stopProcess(ctx context.Context) error {
 }
 
 func probeHealth(ctx context.Context, baseURL string) error {
-	base := strings.TrimSpace(baseURL)
-	if base == "" {
-		return fmt.Errorf("arc runtime base url is not set")
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/api/healthcheck", nil)
+	healthcheckURL, err := healthcheckURL(baseURL)
 	if err != nil {
 		return err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	// #nosec G704 -- healthcheckURL validates scheme and restricts the host to loopback before request creation.
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthcheckURL, nil)
+	if err != nil {
+		return err
+	}
+	// #nosec G704 -- req is built from a loopback-only URL validated by healthcheckURL.
+	resp, err := (&http.Client{Timeout: 5 * time.Second}).Do(req)
 	if err != nil {
 		return err
 	}
@@ -110,6 +114,36 @@ func probeHealth(ctx context.Context, baseURL string) error {
 		return fmt.Errorf("arc runtime healthcheck status %d", resp.StatusCode)
 	}
 	return nil
+}
+
+func healthcheckURL(baseURL string) (string, error) {
+	base := strings.TrimSpace(baseURL)
+	if base == "" {
+		return "", fmt.Errorf("arc runtime base url is not set")
+	}
+	parsed, err := url.Parse(base)
+	if err != nil {
+		return "", fmt.Errorf("parse arc runtime base url: %w", err)
+	}
+	if parsed.Scheme != "http" {
+		return "", fmt.Errorf("arc runtime base url must use http")
+	}
+	host := strings.TrimSpace(parsed.Hostname())
+	if host == "" {
+		return "", fmt.Errorf("arc runtime base url host is required")
+	}
+	if !isLoopbackHost(host) {
+		return "", fmt.Errorf("arc runtime base url host %q must be loopback", host)
+	}
+	return parsed.ResolveReference(&url.URL{Path: "/api/healthcheck"}).String(), nil
+}
+
+func isLoopbackHost(host string) bool {
+	if strings.EqualFold(strings.TrimSpace(host), "localhost") {
+		return true
+	}
+	ip := net.ParseIP(strings.TrimSpace(host))
+	return ip != nil && ip.IsLoopback()
 }
 
 func writeBootstrapScript(tempDir, mode, host string, port int) (string, error) {

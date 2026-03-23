@@ -1,5 +1,5 @@
 export const ARC_DEMO_PLUGIN_BUNDLE = `
-defineStackBundle(({ ui }) => {
+defineRuntimeBundle(({ ui }) => {
   function asRecord(value) {
     return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   }
@@ -8,35 +8,35 @@ defineStackBundle(({ ui }) => {
     return Array.isArray(value) ? value : [];
   }
 
-  function domains(globalState) {
-    return asRecord(asRecord(globalState).domains);
+  function filtersState(state) {
+    return asRecord(asRecord(state).filters);
   }
 
-  function arcBridgeDomain(globalState) {
-    return asRecord(domains(globalState).arcBridge);
+  function arcBridgeDomain(state) {
+    return asRecord(asRecord(state).arcBridge);
   }
 
-  function arcSessionInfo(sessionState) {
-    const state = asRecord(sessionState);
-    const availableGames = asArray(state.arcAvailableGames)
+  function arcSessionInfo(state) {
+    const filters = filtersState(state);
+    const availableGames = asArray(filters.arcAvailableGames)
       .map((value) => String(value || '').trim())
       .filter((value) => value.length > 0);
     return {
-      status: String(state.arcStatus || 'idle'),
-      requestId: String(state.arcLastRequestId || ''),
-      sessionId: String(state.arcSessionId || ''),
-      gameId: String(state.arcGameId || ''),
-      lastError: String(state.arcLastError || ''),
+      status: String(filters.arcStatus || 'idle'),
+      requestId: String(filters.arcLastRequestId || ''),
+      sessionId: String(filters.arcSessionId || ''),
+      gameId: String(filters.arcGameId || ''),
+      lastError: String(filters.arcLastError || ''),
       availableGames: Array.from(new Set(availableGames)),
     };
   }
 
-  function latestCommand(globalState, requestId) {
+  function latestCommand(state, requestId) {
     if (!requestId) {
       return {};
     }
 
-    const commands = asRecord(asRecord(arcBridgeDomain(globalState).commands).byId);
+    const commands = asRecord(asRecord(arcBridgeDomain(state).commands).byId);
     return asRecord(commands[requestId]);
   }
 
@@ -44,8 +44,16 @@ defineStackBundle(({ ui }) => {
     return prefix + '-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
   }
 
-  function notify(dispatchSystemCommand, message) {
-    dispatchSystemCommand('notify', { message: String(message || '') });
+  function notify(context, message) {
+    context.dispatch({ type: 'notify.show', payload: { message: String(message || '') } });
+  }
+
+  function patchFilters(context, payload) {
+    context.dispatch({ type: 'filters.patch', payload });
+  }
+
+  function dispatchArc(context, payload) {
+    context.dispatch({ type: 'arc/command.request', payload });
   }
 
   function canonicalAction(raw) {
@@ -62,6 +70,7 @@ defineStackBundle(({ ui }) => {
   return {
     id: 'arc-agi-demo',
     title: 'ARC Demo Card',
+    packageIds: ["ui"],
     initialSessionState: {
       arcStatus: 'idle',
       arcLastRequestId: '',
@@ -70,11 +79,11 @@ defineStackBundle(({ ui }) => {
       arcLastError: '',
       arcAvailableGames: [],
     },
-    cards: {
+    surfaces: {
       home: {
-        render({ sessionState, globalState }) {
-          const info = arcSessionInfo(sessionState);
-          const command = asRecord(latestCommand(globalState, info.requestId));
+        render({ state }) {
+          const info = arcSessionInfo(state);
+          const command = asRecord(latestCommand(state, info.requestId));
           const commandStatus = String(command.status || info.status || 'idle');
           const gameButtons = info.availableGames
             .slice(0, 12)
@@ -109,65 +118,65 @@ defineStackBundle(({ ui }) => {
         },
 
         handlers: {
-          setGameId({ dispatchSessionAction }, args) {
+          setGameId(context, args) {
             const value = String(asRecord(args).value || '').trim();
-            dispatchSessionAction('patch', { arcGameId: value });
+            patchFilters(context, { arcGameId: value });
           },
 
-          quickGame({ dispatchSessionAction }, args) {
+          quickGame(context, args) {
             const gameId = String(asRecord(args).gameId || '').trim();
             if (!gameId) {
               return;
             }
-            dispatchSessionAction('patch', { arcGameId: gameId });
+            patchFilters(context, { arcGameId: gameId });
           },
 
-          loadGames({ dispatchDomainAction, dispatchSessionAction }) {
+          loadGames(context) {
             const requestId = nextRequestId('arc-list-games');
-            dispatchSessionAction('patch', {
+            patchFilters(context, {
               arcStatus: 'requested',
               arcLastRequestId: requestId,
               arcLastError: '',
             });
-            dispatchDomainAction('arc', 'command.request', {
+            dispatchArc(context, {
               op: 'list-games',
               requestId,
               args: {},
             });
           },
 
-          createSession({ dispatchDomainAction, dispatchSessionAction }) {
+          createSession(context) {
             const requestId = nextRequestId('arc-create-session');
-            dispatchSessionAction('patch', {
+            patchFilters(context, {
               arcStatus: 'requested',
               arcLastRequestId: requestId,
               arcLastError: '',
             });
-            dispatchDomainAction('arc', 'command.request', {
+            dispatchArc(context, {
               op: 'create-session',
               requestId,
               args: {},
             });
           },
 
-          resetGame({ dispatchDomainAction, dispatchSessionAction, dispatchSystemCommand, sessionState }) {
-            const info = arcSessionInfo(sessionState);
+          resetGame(context) {
+            const info = arcSessionInfo(context.state);
             if (!info.sessionId) {
-              notify(dispatchSystemCommand, 'Create a session first.');
+              notify(context, 'Create a session first.');
               return;
             }
             if (!info.gameId) {
-              notify(dispatchSystemCommand, 'Load Games, then choose a Game ID first.');
+              notify(context, 'Load Games, then choose a Game ID first.');
               return;
             }
 
             const requestId = nextRequestId('arc-reset-game');
-            dispatchSessionAction('patch', {
+            patchFilters(context, {
               arcStatus: 'requested',
               arcLastRequestId: requestId,
               arcLastError: '',
             });
-            dispatchDomainAction('arc', 'command.request', {
+            dispatchArc(context, {
               op: 'reset-game',
               requestId,
               args: {
@@ -177,25 +186,25 @@ defineStackBundle(({ ui }) => {
             });
           },
 
-          doAction({ dispatchDomainAction, dispatchSessionAction, dispatchSystemCommand, sessionState }, args) {
-            const info = arcSessionInfo(sessionState);
+          doAction(context, args) {
+            const info = arcSessionInfo(context.state);
             if (!info.sessionId) {
-              notify(dispatchSystemCommand, 'Create a session first.');
+              notify(context, 'Create a session first.');
               return;
             }
             if (!info.gameId) {
-              notify(dispatchSystemCommand, 'Load Games, then choose a Game ID first.');
+              notify(context, 'Load Games, then choose a Game ID first.');
               return;
             }
 
             const action = canonicalAction(asRecord(args).action || 'up');
             const requestId = nextRequestId('arc-action');
-            dispatchSessionAction('patch', {
+            patchFilters(context, {
               arcStatus: 'requested',
               arcLastRequestId: requestId,
               arcLastError: '',
             });
-            dispatchDomainAction('arc', 'command.request', {
+            dispatchArc(context, {
               op: 'perform-action',
               requestId,
               args: {
@@ -206,20 +215,20 @@ defineStackBundle(({ ui }) => {
             });
           },
 
-          loadTimeline({ dispatchDomainAction, dispatchSessionAction, dispatchSystemCommand, sessionState }) {
-            const info = arcSessionInfo(sessionState);
+          loadTimeline(context) {
+            const info = arcSessionInfo(context.state);
             if (!info.sessionId) {
-              notify(dispatchSystemCommand, 'Create a session first.');
+              notify(context, 'Create a session first.');
               return;
             }
 
             const requestId = nextRequestId('arc-timeline');
-            dispatchSessionAction('patch', {
+            patchFilters(context, {
               arcStatus: 'requested',
               arcLastRequestId: requestId,
               arcLastError: '',
             });
-            dispatchDomainAction('arc', 'command.request', {
+            dispatchArc(context, {
               op: 'load-timeline',
               requestId,
               args: {
