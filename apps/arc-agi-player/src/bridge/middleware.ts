@@ -1,5 +1,5 @@
-import { showToast } from '@hypercard/engine';
-import { authorizeDomainIntent, ingestRuntimeAction } from '@hypercard/hypercard-runtime';
+import { showToast } from '@go-go-golems/os-core';
+import { authorizeDomainIntent, ingestRuntimeAction } from '@go-go-golems/os-scripting';
 import type { Dispatch, Middleware, UnknownAction } from '@reduxjs/toolkit';
 import {
   arcCommandFailed,
@@ -57,6 +57,7 @@ interface RootStateLike {
 interface RuntimeActionMeta {
   source?: string;
   sessionId?: string;
+  surfaceId?: string;
   cardId?: string;
 }
 
@@ -114,7 +115,8 @@ function mergeMeta(payload: ArcCommandRequestPayload, actionMeta?: RuntimeAction
     ...payload.meta,
     source: payload.meta?.source ?? (actionMeta?.source as ArcCommandMeta['source'] | undefined),
     runtimeSessionId: payload.meta?.runtimeSessionId ?? actionMeta?.sessionId,
-    cardId: payload.meta?.cardId ?? actionMeta?.cardId,
+    surfaceId: payload.meta?.surfaceId ?? payload.meta?.cardId ?? actionMeta?.surfaceId ?? actionMeta?.cardId,
+    cardId: payload.meta?.cardId ?? payload.meta?.surfaceId ?? actionMeta?.cardId ?? actionMeta?.surfaceId,
   };
 }
 
@@ -377,11 +379,12 @@ function mirrorRuntimeSessionState(
   if (!runtimeSessionId) {
     return;
   }
+  const surfaceId = meta.surfaceId ?? meta.cardId ?? 'home';
 
   dispatch(
     ingestRuntimeAction({
       sessionId: runtimeSessionId,
-      cardId: meta.cardId ?? 'home',
+      surfaceId,
       action: {
         type: 'filters.patch',
         payload,

@@ -2,10 +2,11 @@ import {
   dequeuePendingDomainIntent,
   ingestRuntimeAction,
   selectPendingDomainIntents,
-} from '@hypercard/hypercard-runtime';
+  type DomainIntentEnvelope,
+} from '@go-go-golems/os-scripting';
 import {
   showToast,
-} from '@hypercard/engine';
+} from '@go-go-golems/os-core';
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -17,16 +18,6 @@ import {
 } from './slice';
 import type { ArcCommandMeta, ArcCommandRequestPayload, ArcCommandSuccessPayload } from './contracts';
 import { validateArcCommandRequestPayload } from './contracts';
-
-interface DomainIntentEnvelope {
-  id: string;
-  timestamp: string;
-  sessionId: string;
-  cardId: string;
-  domain: string;
-  type: string;
-  payload?: unknown;
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -73,10 +64,11 @@ function extractGamesPayload(value: unknown): unknown[] {
 
 function toMeta(intent: DomainIntentEnvelope, payload: ArcCommandRequestPayload): ArcCommandMeta {
   return {
+    ...payload.meta,
     source: 'plugin-runtime',
     runtimeSessionId: intent.sessionId,
-    cardId: intent.cardId,
-    ...payload.meta,
+    surfaceId: payload.meta?.surfaceId ?? intent.surfaceId,
+    cardId: payload.meta?.cardId ?? payload.meta?.surfaceId ?? intent.surfaceId,
   };
 }
 
@@ -245,13 +237,13 @@ async function executeArcCommand(payload: ArcCommandRequestPayload): Promise<{
 function mirrorRuntimeSessionState(
   dispatch: (action: unknown) => unknown,
   runtimeSessionId: string,
-  cardId: string,
+  surfaceId: string,
   payload: Record<string, unknown>,
 ) {
   dispatch(
     ingestRuntimeAction({
       sessionId: runtimeSessionId,
-      cardId,
+      surfaceId,
       action: {
         type: 'filters.patch',
         payload,
@@ -335,7 +327,7 @@ export function ArcPendingIntentEffectHost() {
         message: validated.reason,
       };
       dispatch(arcCommandFailed({ requestId, error }));
-      mirrorRuntimeSessionState(dispatch as any, nextIntent.sessionId, nextIntent.cardId, {
+      mirrorRuntimeSessionState(dispatch as any, nextIntent.sessionId, nextIntent.surfaceId, {
         arcStatus: 'failed',
         arcLastRequestId: requestId,
         arcLastError: error.message,
@@ -354,7 +346,7 @@ export function ArcPendingIntentEffectHost() {
     inFlightRequestIdsRef.current.add(payload.requestId);
     const meta = toMeta(nextIntent, payload);
 
-    mirrorRuntimeSessionState(dispatch as any, nextIntent.sessionId, nextIntent.cardId, {
+    mirrorRuntimeSessionState(dispatch as any, nextIntent.sessionId, nextIntent.surfaceId, {
       arcStatus: 'started',
       arcLastRequestId: payload.requestId,
       arcLastError: null,
@@ -398,7 +390,7 @@ export function ArcPendingIntentEffectHost() {
         mirrorRuntimeSessionState(
           dispatch as any,
           nextIntent.sessionId,
-          nextIntent.cardId,
+          nextIntent.surfaceId,
           buildSuccessRuntimePatch(payload.requestId, payload.op, execution),
         );
       })
@@ -411,7 +403,7 @@ export function ArcPendingIntentEffectHost() {
             meta,
           }),
         );
-        mirrorRuntimeSessionState(dispatch as any, nextIntent.sessionId, nextIntent.cardId, {
+        mirrorRuntimeSessionState(dispatch as any, nextIntent.sessionId, nextIntent.surfaceId, {
           arcStatus: 'failed',
           arcLastRequestId: payload.requestId,
           arcLastError: normalized.message,

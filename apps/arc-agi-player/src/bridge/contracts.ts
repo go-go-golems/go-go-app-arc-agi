@@ -10,6 +10,7 @@ export type ArcCommandStatus = 'requested' | 'started' | 'succeeded' | 'failed';
 
 export interface ArcCommandMeta {
   stackId?: string;
+  surfaceId?: string;
   cardId?: string;
   runtimeSessionId?: string;
   interactionId?: string;

@@ -1,9 +1,9 @@
 import {
   debugReducer,
   notificationsReducer,
-} from '@hypercard/engine';
-import { hypercardArtifactsReducer, runtimeSessionsReducer } from '@hypercard/hypercard-runtime';
-import { windowingReducer } from '@hypercard/engine/desktop-core';
+} from '@go-go-golems/os-core';
+import { hypercardArtifactsReducer, runtimeSessionsReducer } from '@go-go-golems/os-scripting';
+import { windowingReducer } from '@go-go-golems/os-core/desktop-core';
 import { configureStore } from '@reduxjs/toolkit';
 import { arcApi } from '../api/arcApi';
 import { arcBridgeReducer, createArcBridgeMiddleware } from '../bridge';
