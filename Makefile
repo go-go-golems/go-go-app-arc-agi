@@ -54,3 +54,11 @@ GO_GO_APP_ARC_AGI_BINARY=$(shell which go-go-app-arc-agi)
 install:
 	GOWORK=off go build -o ./dist/go-go-app-arc-agi ./cmd/go-go-app-arc-agi && \
 		cp ./dist/go-go-app-arc-agi $(GO_GO_APP_ARC_AGI_BINARY)
+
+.PHONY: logcopter-generate
+logcopter-generate:
+	GOWORK=off go generate ./...
+
+.PHONY: logcopter-check
+logcopter-check:
+	GOWORK=off go tool logcopter-gen -area-prefix go-go-golems.go-go-app-arc-agi -strip-prefix github.com/go-go-golems/go-go-app-arc-agi -check ./pkg/... ./cmd/...
