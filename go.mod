@@ -1,6 +1,6 @@
 module github.com/go-go-golems/go-go-app-arc-agi
 
-go 1.25.7
+go 1.25.10
 
 require (
 	github.com/go-go-golems/go-go-os-backend v0.0.3
