@@ -1,0 +1,3 @@
+package arcagi
+
+//go:generate go tool logcopter-gen -area-prefix go-go-golems.go-go-app-arc-agi -strip-prefix github.com/go-go-golems/go-go-app-arc-agi ./pkg/... ./cmd/...
